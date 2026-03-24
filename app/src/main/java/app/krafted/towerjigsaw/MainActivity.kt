@@ -12,14 +12,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import app.krafted.towerjigsaw.ui.HomeScreen
 import app.krafted.towerjigsaw.ui.theme.TowerJigsawTheme
+import app.krafted.towerjigsaw.viewmodel.HomeViewModel
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,32 +77,50 @@ fun TowerJigsawNavHost(modifier: Modifier = Modifier) {
         }
     ) {
         composable("splash") {
-            PlaceholderScreen(label = "Splash")
+            LaunchedEffect(Unit) {
+                delay(1500)
+                navController.navigate("home") {
+                    popUpTo("splash") { inclusive = true }
+                }
+            }
+            PlaceholderScreen(label = "🏰 TOWER JIGSAW")
         }
 
         composable("home") {
-            PlaceholderScreen(label = "Home")
+            val homeViewModel: HomeViewModel = viewModel()
+            val isTimedMode by homeViewModel.isTimedMode.collectAsState()
+            val completedKeys by homeViewModel.completedKeys.collectAsState()
+
+            HomeScreen(
+                isTimedMode = isTimedMode,
+                completedKeys = completedKeys,
+                onPuzzleSelected = { puzzleId ->
+                    navController.navigate("puzzle_select/$puzzleId")
+                },
+                onToggleMode = { homeViewModel.toggleMode() },
+                onLeaderboardClick = { navController.navigate("leaderboard") }
+            )
         }
 
         composable(
             route = "puzzle_select/{puzzleId}",
             arguments = listOf(
-                navArgument("puzzleId") { type = NavType.StringType }
+                navArgument("puzzleId") { type = NavType.IntType }
             )
         ) { backStackEntry ->
-            val puzzleId = backStackEntry.arguments?.getString("puzzleId").orEmpty()
+            val puzzleId = backStackEntry.arguments?.getInt("puzzleId") ?: 1
             PlaceholderScreen(label = "Puzzle Select (puzzleId=$puzzleId)")
         }
 
         composable(
             route = "puzzle/{puzzleId}/{difficulty}/{isTimedMode}",
             arguments = listOf(
-                navArgument("puzzleId") { type = NavType.StringType },
+                navArgument("puzzleId") { type = NavType.IntType },
                 navArgument("difficulty") { type = NavType.StringType },
                 navArgument("isTimedMode") { type = NavType.BoolType }
             )
         ) { backStackEntry ->
-            val puzzleId = backStackEntry.arguments?.getString("puzzleId").orEmpty()
+            val puzzleId = backStackEntry.arguments?.getInt("puzzleId") ?: 1
             val difficulty = backStackEntry.arguments?.getString("difficulty").orEmpty()
             val isTimedMode = backStackEntry.arguments?.getBoolean("isTimedMode") ?: false
             PlaceholderScreen(
@@ -106,14 +131,14 @@ fun TowerJigsawNavHost(modifier: Modifier = Modifier) {
         composable(
             route = "complete/{puzzleId}/{difficulty}/{score}/{stars}/{timeMs}",
             arguments = listOf(
-                navArgument("puzzleId") { type = NavType.StringType },
+                navArgument("puzzleId") { type = NavType.IntType },
                 navArgument("difficulty") { type = NavType.StringType },
                 navArgument("score") { type = NavType.IntType },
                 navArgument("stars") { type = NavType.IntType },
                 navArgument("timeMs") { type = NavType.LongType }
             )
         ) { backStackEntry ->
-            val puzzleId = backStackEntry.arguments?.getString("puzzleId").orEmpty()
+            val puzzleId = backStackEntry.arguments?.getInt("puzzleId") ?: 1
             val difficulty = backStackEntry.arguments?.getString("difficulty").orEmpty()
             val score = backStackEntry.arguments?.getInt("score") ?: 0
             val stars = backStackEntry.arguments?.getInt("stars") ?: 0
