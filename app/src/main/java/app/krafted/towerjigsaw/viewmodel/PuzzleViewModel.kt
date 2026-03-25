@@ -5,7 +5,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.krafted.towerjigsaw.data.db.AppDatabase
 import app.krafted.towerjigsaw.data.db.PuzzleDao
-import app.krafted.towerjigsaw.data.db.PuzzleResult
 import app.krafted.towerjigsaw.game.Difficulty
 import app.krafted.towerjigsaw.game.PuzzleEngine
 import app.krafted.towerjigsaw.game.PuzzlePiece
@@ -83,14 +82,6 @@ class PuzzleViewModel(application: Application) : AndroidViewModel(application) 
                     isComplete = true,
                     timeElapsedMs = elapsed,
                     finalScore = score,
-                    stars = stars
-                )
-                saveResult(
-                    puzzleId = current.puzzleId,
-                    difficulty = current.difficulty,
-                    isTimedMode = current.isTimedMode,
-                    completionTimeMs = elapsed,
-                    score = score,
                     stars = stars
                 )
             } else {
@@ -177,28 +168,6 @@ class PuzzleViewModel(application: Application) : AndroidViewModel(application) 
             if (rowDone) return solution.subList(0, index + 1)
         }
         return solution
-    }
-
-    private fun saveResult(
-        puzzleId: Int,
-        difficulty: Difficulty,
-        isTimedMode: Boolean,
-        completionTimeMs: Long,
-        score: Int,
-        stars: Int
-    ) {
-        viewModelScope.launch {
-            dao.insertResult(
-                PuzzleResult(
-                    puzzleId = puzzleId,
-                    difficulty = difficulty.name,
-                    isTimedMode = isTimedMode,
-                    completionTimeMs = completionTimeMs,
-                    score = score,
-                    stars = stars
-                )
-            )
-        }
     }
 
     private fun startTimer() {

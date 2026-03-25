@@ -1,12 +1,19 @@
 package app.krafted.towerjigsaw.ui
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -23,19 +30,21 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -50,8 +59,10 @@ import java.util.Date
 import java.util.Locale
 
 private val LbBgTop = Color(0xFF080810)
+private val LbBgMid = Color(0xFF0F0F22)
 private val LbBgBottom = Color(0xFF151530)
 private val LbGold = Color(0xFFFFD54F)
+private val LbGoldBright = Color(0xFFFFF176)
 private val LbTextPrimary = Color(0xFFF0F0F8)
 private val LbTextSecondary = Color(0xFF9090B0)
 private val LbTextTertiary = Color(0xFF606080)
@@ -77,7 +88,7 @@ fun LeaderboardScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(LbBgTop, LbBgBottom)))
+            .background(Brush.verticalGradient(listOf(LbBgTop, LbBgMid, LbBgBottom)))
     ) {
         Column(
             modifier = Modifier
@@ -113,21 +124,57 @@ fun LeaderboardScreen(
 
 @Composable
 private fun LeaderboardTopBar(onBack: () -> Unit) {
+    val enterAlpha by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = tween(700, delayMillis = 100),
+        label = "lbEnterAlpha"
+    )
+    val infiniteTransition = rememberInfiniteTransition(label = "lbHeaderAnim")
+    val shimmerOffset by infiniteTransition.animateFloat(
+        initialValue = -1f,
+        targetValue = 2.5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(4000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "lbShimmer"
+    )
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 0.5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "lbGlow"
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .graphicsLayer { alpha = enterAlpha },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onBack) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = LbTextSecondary
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier
+                .size(40.dp)
+                .background(
+                    Brush.radialGradient(listOf(Color.White.copy(alpha = 0.06f), Color.Transparent)),
+                    shape = CircleShape
+                )
+                .border(1.dp, LbCardBorder, CircleShape)
+        ) {
+            Text(
+                text = "\u2190",
+                fontSize = 18.sp,
+                color = LbTextPrimary,
+                fontWeight = FontWeight.Light
             )
         }
 
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -140,8 +187,30 @@ private fun LeaderboardTopBar(onBack: () -> Unit) {
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Black,
                     color = LbTextPrimary,
-                    letterSpacing = 3.sp
-                )
+                    letterSpacing = 3.sp,
+                    shadow = Shadow(
+                        color = LbGold.copy(alpha = glowAlpha),
+                        offset = Offset(0f, 0f),
+                        blurRadius = 20f
+                    )
+                ),
+                modifier = Modifier
+                    .graphicsLayer { alpha = 0.99f }
+                    .drawWithContent {
+                        drawContent()
+                        val shimmerBrush = Brush.linearGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                LbGoldBright.copy(alpha = 0.45f),
+                                Color.White.copy(alpha = 0.12f),
+                                LbGoldBright.copy(alpha = 0.45f),
+                                Color.Transparent
+                            ),
+                            start = Offset(size.width * shimmerOffset, 0f),
+                            end = Offset(size.width * (shimmerOffset + 0.4f), size.height)
+                        )
+                        drawRect(brush = shimmerBrush, blendMode = BlendMode.SrcAtop)
+                    }
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(text = "\uD83C\uDFC6", fontSize = 18.sp)
@@ -418,23 +487,35 @@ private fun ScoreRowContent(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        Text(
-            text = result.score.toString(),
-            style = TextStyle(
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = accentColor,
-                letterSpacing = 0.sp
-            ),
-            modifier = Modifier.width(72.dp)
-        )
-
         Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = result.playerName,
+                style = TextStyle(
+                    fontFamily = DisplayFont,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = accentColor,
+                    letterSpacing = 0.3.sp
+                )
+            )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = timeFormatted,
                 style = MaterialTheme.typography.bodySmall.copy(
                     color = LbTextSecondary,
-                    fontSize = 12.sp
+                    fontSize = 11.sp
+                )
+            )
+        }
+
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = "${result.score} pts",
+                style = TextStyle(
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = accentColor,
+                    letterSpacing = 0.sp
                 )
             )
             Spacer(modifier = Modifier.height(2.dp))

@@ -119,8 +119,6 @@ object PuzzleEngine {
         return "%d:%02d".format(minutes, seconds)
     }
 
-
-    /** Returns the topmost row index that still has misplaced pieces, or null if all complete. */
     fun getTargetRow(pieces: List<PuzzlePiece>, rows: Int): Int? {
         for (row in 0 until rows) {
             if (pieces.filter { it.correctRow == row }.any { it.currentCol != it.correctCol || it.currentRow != it.correctRow }) {
@@ -130,7 +128,6 @@ object PuzzleEngine {
         return null
     }
 
-    /** Returns the full ordered list of piece IDs to tap to solve the puzzle. */
     fun findFullSolution(
         pieces: List<PuzzlePiece>,
         emptyCol: Int,
@@ -151,7 +148,6 @@ object PuzzleEngine {
                 ?: greedyFullSolution(originalBoard, emptyIndex, cols, rows)
         }
 
-        // Simulate moves on original board to extract piece IDs in order
         val simBoard = originalBoard.copyOf()
         var simEmpty = emptyIndex
         return moveIndices.map { moveIdx ->
@@ -212,7 +208,7 @@ object PuzzleEngine {
         data class State(val board: IntArray, val emptyIdx: Int, val path: List<Int>) {
             fun key(): Long {
                 var h = 0L
-                for (v in board) h = h * 31 + v
+                for (v in this.board) h = h * 31 + v
                 return h
             }
         }

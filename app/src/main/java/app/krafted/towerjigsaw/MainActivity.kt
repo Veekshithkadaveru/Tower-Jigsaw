@@ -23,6 +23,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import app.krafted.towerjigsaw.game.Puzzles
+import app.krafted.towerjigsaw.ui.CompleteScreen
 import app.krafted.towerjigsaw.ui.HomeScreen
 import app.krafted.towerjigsaw.ui.LeaderboardScreen
 import app.krafted.towerjigsaw.ui.PuzzleScreen
@@ -153,7 +155,7 @@ fun TowerJigsawNavHost(modifier: Modifier = Modifier) {
                 difficultyName = difficulty,
                 isTimedMode = isTimedMode,
                 onPuzzleComplete = { id, diffName, score, stars, timeMs ->
-                    navController.navigate("complete/$id/$diffName/$score/$stars/$timeMs") {
+                    navController.navigate("complete/$id/$diffName/$score/$stars/$timeMs/$isTimedMode") {
                         popUpTo("puzzle_select/$id") { inclusive = false }
                     }
                 },
@@ -162,22 +164,44 @@ fun TowerJigsawNavHost(modifier: Modifier = Modifier) {
         }
 
         composable(
-            route = "complete/{puzzleId}/{difficulty}/{score}/{stars}/{timeMs}",
+            route = "complete/{puzzleId}/{difficulty}/{score}/{stars}/{timeMs}/{isTimedMode}",
             arguments = listOf(
                 navArgument("puzzleId") { type = NavType.IntType },
                 navArgument("difficulty") { type = NavType.StringType },
                 navArgument("score") { type = NavType.IntType },
                 navArgument("stars") { type = NavType.IntType },
-                navArgument("timeMs") { type = NavType.LongType }
+                navArgument("timeMs") { type = NavType.LongType },
+                navArgument("isTimedMode") { type = NavType.BoolType }
             )
         ) { backStackEntry ->
-            val puzzleId = backStackEntry.arguments?.getInt("puzzleId") ?: 1
-            val difficulty = backStackEntry.arguments?.getString("difficulty").orEmpty()
-            val score = backStackEntry.arguments?.getInt("score") ?: 0
-            val stars = backStackEntry.arguments?.getInt("stars") ?: 0
-            val timeMs = backStackEntry.arguments?.getLong("timeMs") ?: 0L
-            PlaceholderScreen(
-                label = "Complete (puzzle=$puzzleId, difficulty=$difficulty, score=$score, stars=$stars, time=${timeMs}ms)"
+            val puzzleId      = backStackEntry.arguments?.getInt("puzzleId") ?: 1
+            val difficulty    = backStackEntry.arguments?.getString("difficulty").orEmpty()
+            val score         = backStackEntry.arguments?.getInt("score") ?: 0
+            val stars         = backStackEntry.arguments?.getInt("stars") ?: 0
+            val timeMs        = backStackEntry.arguments?.getLong("timeMs") ?: 0L
+            val isTimedMode   = backStackEntry.arguments?.getBoolean("isTimedMode") ?: false
+
+            val hasNextPuzzle = puzzleId < Puzzles.all.size
+
+            CompleteScreen(
+                puzzleId = puzzleId,
+                difficultyName = difficulty,
+                isTimedMode = isTimedMode,
+                score = score,
+                stars = stars,
+                timeMs = timeMs,
+                onNextPuzzle = if (hasNextPuzzle) {
+                    {
+                        navController.navigate("puzzle_select/${puzzleId + 1}") {
+                            popUpTo("home") { inclusive = false }
+                        }
+                    }
+                } else null,
+                onHome = {
+                    navController.navigate("home") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                }
             )
         }
 

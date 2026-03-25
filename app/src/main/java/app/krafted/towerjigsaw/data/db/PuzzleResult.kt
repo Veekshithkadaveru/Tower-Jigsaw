@@ -12,5 +12,6 @@ data class PuzzleResult(
     val completionTimeMs: Long,
     val score: Int,
     val stars: Int,
+    val playerName: String = "Player",
     val completedAt: Long = System.currentTimeMillis()
 )

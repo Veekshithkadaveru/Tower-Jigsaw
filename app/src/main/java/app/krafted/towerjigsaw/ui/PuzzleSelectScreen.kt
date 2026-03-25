@@ -1,8 +1,14 @@
 package app.krafted.towerjigsaw.ui
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,9 +40,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -53,7 +63,9 @@ import app.krafted.towerjigsaw.game.Puzzles
 import app.krafted.towerjigsaw.ui.theme.DisplayFont
 
 private val PsBgTop = Color(0xFF080810)
+private val PsBgMid = Color(0xFF0F0F22)
 private val PsBgBottom = Color(0xFF151530)
+private val PsGoldBright = Color(0xFFFFF176)
 private val PsGold = Color(0xFFFFD54F)
 private val PsTextPrimary = Color(0xFFF0F0F8)
 private val PsTextSecondary = Color(0xFF9090B0)
@@ -77,7 +89,7 @@ fun PuzzleSelectScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(PsBgTop, PsBgBottom)))
+            .background(Brush.verticalGradient(listOf(PsBgTop, PsBgMid, PsBgBottom)))
     ) {
         Column(
             modifier = Modifier
@@ -109,7 +121,7 @@ fun PuzzleSelectScreen(
                 modifier = Modifier.padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Difficulty.entries.forEach { difficulty ->
+                Difficulty.entries.forEachIndexed { index, difficulty ->
                     val key = "${puzzleId}_${difficulty.name}"
                     val isCompleted = completedKeys.contains(key)
                     val isUnlocked = when (difficulty) {
@@ -125,6 +137,7 @@ fun PuzzleSelectScreen(
                         isCompleted = isCompleted,
                         isUnlocked = isUnlocked,
                         bestResult = bestResult,
+                        entryDelayMs = 300 + index * 100,
                         onClick = { if (isUnlocked) onDifficultySelected(difficulty) }
                     )
                 }
@@ -146,10 +159,37 @@ private fun TopBar(
     puzzleId: Int,
     onBack: () -> Unit
 ) {
+    val enterAlpha by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = tween(700, delayMillis = 100),
+        label = "topBarAlpha"
+    )
+
+    val infiniteTransition = rememberInfiniteTransition(label = "topBarAnim")
+    val shimmerOffset by infiniteTransition.animateFloat(
+        initialValue = -1f,
+        targetValue = 2.5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(4000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmerOffset"
+    )
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 0.5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glowAlpha"
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 8.dp),
+            .padding(horizontal = 8.dp, vertical = 8.dp)
+            .graphicsLayer { alpha = enterAlpha },
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(
@@ -179,9 +219,31 @@ private fun TopBar(
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = PsTextPrimary,
-                letterSpacing = 0.5.sp
+                letterSpacing = 0.5.sp,
+                shadow = Shadow(
+                    color = PsGold.copy(alpha = glowAlpha),
+                    offset = Offset(0f, 0f),
+                    blurRadius = 20f
+                )
             ),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
+                .graphicsLayer { alpha = 0.99f }
+                .drawWithContent {
+                    drawContent()
+                    val shimmerBrush = Brush.linearGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            PsGoldBright.copy(alpha = 0.4f),
+                            Color.White.copy(alpha = 0.1f),
+                            PsGoldBright.copy(alpha = 0.4f),
+                            Color.Transparent
+                        ),
+                        start = Offset(size.width * shimmerOffset, 0f),
+                        end = Offset(size.width * (shimmerOffset + 0.4f), size.height)
+                    )
+                    drawRect(brush = shimmerBrush, blendMode = BlendMode.SrcAtop)
+                }
         )
 
         Box(
@@ -321,6 +383,7 @@ private fun DifficultyCard(
     isCompleted: Boolean,
     isUnlocked: Boolean,
     bestResult: PuzzleResult?,
+    entryDelayMs: Int = 300,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -329,6 +392,16 @@ private fun DifficultyCard(
         targetValue = if (isPressed && isUnlocked) 0.97f else 1f,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "cardScale"
+    )
+    val entryAlpha by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = tween(450, delayMillis = entryDelayMs),
+        label = "entryAlpha"
+    )
+    val entrySlide by animateFloatAsState(
+        targetValue = 0f,
+        animationSpec = tween(450, delayMillis = entryDelayMs),
+        label = "entrySlide"
     )
 
     val cardAccent = when {
@@ -344,7 +417,8 @@ private fun DifficultyCard(
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
-                alpha = cardAlpha
+                alpha = cardAlpha * entryAlpha
+                translationY = (1f - entryAlpha) * 24f
             }
             .shadow(
                 elevation = if (isUnlocked) 6.dp else 0.dp,
