@@ -26,6 +26,7 @@ import androidx.navigation.navArgument
 import app.krafted.towerjigsaw.game.Puzzles
 import app.krafted.towerjigsaw.ui.CompleteScreen
 import app.krafted.towerjigsaw.ui.HomeScreen
+import app.krafted.towerjigsaw.ui.SplashScreen
 import app.krafted.towerjigsaw.ui.LeaderboardScreen
 import app.krafted.towerjigsaw.ui.PuzzleScreen
 import app.krafted.towerjigsaw.ui.PuzzleSelectScreen
@@ -88,12 +89,12 @@ fun TowerJigsawNavHost(modifier: Modifier = Modifier) {
     ) {
         composable("splash") {
             LaunchedEffect(Unit) {
-                delay(1500)
+                delay(2600)
                 navController.navigate("home") {
                     popUpTo("splash") { inclusive = true }
                 }
             }
-            PlaceholderScreen(label = "🏰 TOWER JIGSAW")
+            SplashScreen()
         }
 
         composable("home") {

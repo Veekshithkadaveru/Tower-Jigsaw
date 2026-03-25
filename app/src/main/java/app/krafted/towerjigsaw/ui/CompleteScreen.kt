@@ -90,7 +90,6 @@ fun CompleteScreen(
         context.resources.getIdentifier(puzzle.imageResName, "drawable", context.packageName)
     }
 
-    // --- animation state triggers ---
     var revealVisible  by remember { mutableStateOf(false) }
     var statsVisible   by remember { mutableStateOf(false) }
     var star1Visible   by remember { mutableStateOf(false) }
@@ -109,7 +108,6 @@ fun CompleteScreen(
         buttonsVisible = true
     }
 
-    // --- animations ---
     val revealScale by animateFloatAsState(
         targetValue = if (revealVisible) 1f else 0.82f,
         animationSpec = spring(dampingRatio = 0.65f, stiffness = 180f),
@@ -161,7 +159,6 @@ fun CompleteScreen(
         label = "buttonsAlpha"
     )
 
-    // --- shimmer + glow for title ---
     val infiniteTransition = rememberInfiniteTransition(label = "titleAnim")
     val shimmerOffset by infiniteTransition.animateFloat(
         initialValue = -1f,
@@ -187,7 +184,6 @@ fun CompleteScreen(
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(CsBgTop, CsBgMid, CsBgBottom)))
     ) {
-        // Confetti particle burst
         ConfettiCanvas(modifier = Modifier.fillMaxSize())
 
         Column(
@@ -200,7 +196,6 @@ fun CompleteScreen(
         ) {
             Spacer(modifier = Modifier.height(28.dp))
 
-            // ── Title ──────────────────────────────────────────────
             Text(
                 text = "PUZZLE COMPLETE",
                 style = TextStyle(
@@ -248,7 +243,6 @@ fun CompleteScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ── Assembled image reveal ─────────────────────────────
             if (resId != 0) {
                 Box(
                     modifier = Modifier
@@ -283,7 +277,6 @@ fun CompleteScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ── Stars ─────────────────────────────────────────────
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
@@ -309,7 +302,6 @@ fun CompleteScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── Stats row ─────────────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -339,7 +331,6 @@ fun CompleteScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ── Name entry ────────────────────────────────────────
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -386,7 +377,6 @@ fun CompleteScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── Buttons ───────────────────────────────────────────
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
