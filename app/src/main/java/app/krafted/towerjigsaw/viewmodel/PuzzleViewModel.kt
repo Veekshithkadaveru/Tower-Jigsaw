@@ -182,8 +182,9 @@ class PuzzleViewModel(application: Application) : AndroidViewModel(application) 
                 if (current.isTimedMode && elapsed >= current.targetTimeMs) {
                     _state.update {
                         it.copy(
-                            timeElapsedMs = elapsed,
+                            timeElapsedMs = current.targetTimeMs,
                             isComplete = true,
+                            isTimedOut = true,
                             finalScore = 0,
                             stars = 0
                         )

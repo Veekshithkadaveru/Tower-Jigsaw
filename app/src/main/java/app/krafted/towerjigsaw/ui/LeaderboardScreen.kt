@@ -13,7 +13,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -29,6 +28,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -161,7 +161,12 @@ private fun LeaderboardTopBar(onBack: () -> Unit) {
             modifier = Modifier
                 .size(40.dp)
                 .background(
-                    Brush.radialGradient(listOf(Color.White.copy(alpha = 0.06f), Color.Transparent)),
+                    Brush.radialGradient(
+                        listOf(
+                            Color.White.copy(alpha = 0.06f),
+                            Color.Transparent
+                        )
+                    ),
                     shape = CircleShape
                 )
                 .border(1.dp, LbCardBorder, CircleShape)
@@ -364,7 +369,12 @@ private fun ScoresList(
         } else {
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 2.dp, bottom = 16.dp),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 2.dp,
+                    bottom = 16.dp
+                ),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 itemsIndexed(scores) { index, result ->
@@ -401,6 +411,12 @@ private fun ScoreRow(
     result: PuzzleResult,
     accentColor: Color
 ) {
+    val entryAlpha by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = tween(400, delayMillis = rank * 60),
+        label = "scoreEntry_$rank"
+    )
+
     val rankColor = when (rank) {
         1 -> LbGold
         2 -> LbSilver
@@ -415,7 +431,8 @@ private fun ScoreRow(
     val s = totalSeconds % 60
     val timeFormatted = "%d:%02d".format(m, s)
 
-    val dateFormatted = SimpleDateFormat("MMM dd", Locale.getDefault()).format(Date(result.completedAt))
+    val dateFormatted =
+        SimpleDateFormat("MMM dd", Locale.getDefault()).format(Date(result.completedAt))
 
     if (isTopThree) {
         Box(
@@ -424,6 +441,7 @@ private fun ScoreRow(
                 .clip(RoundedCornerShape(10.dp))
                 .background(LbCardBg)
                 .border(1.dp, LbCardBorder, RoundedCornerShape(10.dp))
+                .graphicsLayer { alpha = entryAlpha; translationY = (1f - entryAlpha) * 20f }
         ) {
             Box(
                 modifier = Modifier
@@ -448,15 +466,20 @@ private fun ScoreRow(
             )
         }
     } else {
-        ScoreRowContent(
-            rank = rank,
-            rankColor = rankColor,
-            result = result,
-            accentColor = accentColor,
-            timeFormatted = timeFormatted,
-            dateFormatted = dateFormatted,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
-        )
+        Box(
+            modifier = Modifier
+                .graphicsLayer { alpha = entryAlpha; translationY = (1f - entryAlpha) * 20f }
+        ) {
+            ScoreRowContent(
+                rank = rank,
+                rankColor = rankColor,
+                result = result,
+                accentColor = accentColor,
+                timeFormatted = timeFormatted,
+                dateFormatted = dateFormatted,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
+            )
+        }
     }
 }
 

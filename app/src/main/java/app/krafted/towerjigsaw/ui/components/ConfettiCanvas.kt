@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.rotate
 import kotlin.random.Random
 
@@ -19,7 +20,7 @@ private data class ConfettiParticle(
     val pieceSize: Float,       // pixels at 1.0 scale
     val rotation: Float,        // initial rotation degrees
     val rotationSpeed: Float,   // degrees per unit time
-    val isCircle: Boolean
+    val shape: Int
 )
 
 private val confettiColors = listOf(
@@ -47,7 +48,7 @@ fun ConfettiCanvas(modifier: Modifier = Modifier) {
                 pieceSize = 8f + rng.nextFloat() * 10f,
                 rotation = rng.nextFloat() * 360f,
                 rotationSpeed = (rng.nextFloat() - 0.5f) * 600f,
-                isCircle = rng.nextBoolean()
+                shape = rng.nextInt(3)
             )
         }
     }
@@ -68,28 +69,43 @@ fun ConfettiCanvas(modifier: Modifier = Modifier) {
         val t = progress
         particles.forEach { p ->
             // Parabolic fall: y = vy*t + 0.5*gravity*t²; start slightly above screen
-            val px = (p.xFraction + p.vx * t) * size.width
+            val px = (p.xFraction + p.vx * t + 0.02f * kotlin.math.sin(t * p.rotationSpeed * 0.1f)) * size.width
             val py = (-0.08f + p.vy * t + 0.4f * t * t) * size.height
 
             if (py > size.height + 20f || px < -20f || px > size.width + 20f) return@forEach
 
-            val alpha = (1f - (t * 1.1f).coerceAtMost(1f)).coerceAtLeast(0f)
+            val alpha = (1f - (t * 0.8f).coerceAtMost(1f)).coerceAtLeast(0f)
             val color = p.color.copy(alpha = alpha)
             val rot = p.rotation + p.rotationSpeed * t
 
             rotate(degrees = rot, pivot = Offset(px, py)) {
-                if (p.isCircle) {
-                    drawCircle(
-                        color = color,
-                        radius = p.pieceSize / 2f,
-                        center = Offset(px, py)
-                    )
-                } else {
-                    drawRect(
-                        color = color,
-                        topLeft = Offset(px - p.pieceSize / 2f, py - p.pieceSize / 4f),
-                        size = Size(p.pieceSize, p.pieceSize / 2f)
-                    )
+                when (p.shape) {
+                    0 -> {
+                        drawCircle(
+                            color = color,
+                            radius = p.pieceSize / 2f,
+                            center = Offset(px, py)
+                        )
+                    }
+                    1 -> {
+                        drawRect(
+                            color = color,
+                            topLeft = Offset(px - p.pieceSize / 2f, py - p.pieceSize / 4f),
+                            size = Size(p.pieceSize, p.pieceSize / 2f)
+                        )
+                    }
+                    2 -> {
+                        val halfSize = p.pieceSize / 2f
+                        drawPath(
+                            path = Path().apply {
+                                moveTo(px, py - halfSize)
+                                lineTo(px - halfSize, py + halfSize / 2f)
+                                lineTo(px + halfSize, py + halfSize / 2f)
+                                close()
+                            },
+                            color = color
+                        )
+                    }
                 }
             }
         }

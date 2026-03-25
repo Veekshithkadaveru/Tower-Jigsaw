@@ -1,5 +1,6 @@
 package app.krafted.towerjigsaw.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntOffsetAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
@@ -13,8 +14,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -23,6 +27,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -31,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.krafted.towerjigsaw.game.Difficulty
 import app.krafted.towerjigsaw.game.PuzzlePiece
+import kotlinx.coroutines.delay
 
 @Composable
 fun PuzzleBoard(
@@ -48,6 +54,15 @@ fun PuzzleBoard(
     val cellHeight = boardHeight / rows
     val srcTileWidth = imageBitmap.width / cols
     val srcTileHeight = imageBitmap.height / rows
+
+    val tappedPieceId = remember { mutableStateOf<Int?>(null) }
+
+    LaunchedEffect(tappedPieceId.value) {
+        if (tappedPieceId.value != null) {
+            delay(150)
+            tappedPieceId.value = null
+        }
+    }
 
     Box(modifier = modifier) {
         Canvas(modifier = Modifier.matchParentSize()) {
@@ -77,7 +92,12 @@ fun PuzzleBoard(
                     val cellOffset = Offset(col * cellWidth, row * cellHeight)
                     val cellSize = Size(cellWidth, cellHeight)
                     drawRect(color = slotColor, topLeft = cellOffset, size = cellSize)
-                    drawRect(color = ghostColor, topLeft = cellOffset, size = cellSize, style = ghostStroke)
+                    drawRect(
+                        color = ghostColor,
+                        topLeft = cellOffset,
+                        size = cellSize,
+                        style = ghostStroke
+                    )
                 }
             }
         }
@@ -97,16 +117,35 @@ fun PuzzleBoard(
                     label = "slide_${piece.id}"
                 )
 
+                val pieceScale by animateFloatAsState(
+                    targetValue = if (tappedPieceId.value == piece.id) 1.08f else 1f,
+                    animationSpec = spring(stiffness = 400f),
+                    label = "pieceScale_${piece.id}"
+                )
+
+                val isCorrect =
+                    piece.currentCol == piece.correctCol && piece.currentRow == piece.correctRow
+
                 Box(
                     modifier = Modifier
                         .offset { animatedOffset }
                         .size(cellWidthDp, cellHeightDp)
-                        .clickable { onPieceTapped(piece.id) }
+                        .graphicsLayer {
+                            scaleX = pieceScale
+                            scaleY = pieceScale
+                        }
+                        .clickable {
+                            tappedPieceId.value = piece.id
+                            onPieceTapped(piece.id)
+                        }
                 ) {
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         drawImage(
                             image = imageBitmap,
-                            srcOffset = IntOffset(piece.correctCol * srcTileWidth, piece.correctRow * srcTileHeight),
+                            srcOffset = IntOffset(
+                                piece.correctCol * srcTileWidth,
+                                piece.correctRow * srcTileHeight
+                            ),
                             srcSize = IntSize(srcTileWidth, srcTileHeight),
                             dstOffset = IntOffset.Zero,
                             dstSize = IntSize(size.width.toInt(), size.height.toInt())
@@ -123,6 +162,14 @@ fun PuzzleBoard(
                             size = Size(size.width, size.height),
                             style = Stroke(width = 1.5f)
                         )
+                        if (isCorrect) {
+                            drawRect(
+                                color = Color(0xFFFFD54F).copy(alpha = 0.3f),
+                                topLeft = Offset.Zero,
+                                size = Size(size.width, size.height),
+                                style = Stroke(width = 2f)
+                            )
+                        }
                     }
 
                     Text(

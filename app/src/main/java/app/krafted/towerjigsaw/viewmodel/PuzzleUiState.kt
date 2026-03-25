@@ -15,6 +15,7 @@ data class PuzzleUiState(
     val targetTimeMs: Long = 0L,
     val finalScore: Int = 0,
     val stars: Int = 0,
+    val isTimedOut: Boolean = false,
     val isAutoSolving: Boolean = false,
     val isComputingSolution: Boolean = false
 )

@@ -124,7 +124,7 @@ fun HomeScreen(
                 itemsIndexed(Puzzles.all) { index, puzzle ->
                     PuzzleCard(
                         puzzle = puzzle,
-                        index = index + 1,
+                        index = index,
                         completedKeys = completedKeys,
                         onClick = { onPuzzleSelected(puzzle.id) }
                     )
@@ -459,6 +459,11 @@ private fun PuzzleCard(
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "cardScale"
     )
+    val entryAlpha by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = tween(450, delayMillis = index * 80),
+        label = "entryAlpha"
+    )
 
     Box(
         modifier = Modifier
@@ -466,6 +471,8 @@ private fun PuzzleCard(
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
+                alpha = entryAlpha
+                translationY = (1f - entryAlpha) * 24f
             }
             .shadow(
                 elevation = 6.dp,
@@ -550,7 +557,7 @@ private fun PuzzleCard(
                     )
                 } else {
                     Text(
-                        text = String.format("%02d", index),
+                        text = String.format("%02d", index + 1),
                         style = MaterialTheme.typography.displayMedium.copy(
                             color = puzzle.accentColor.copy(alpha = 0.6f),
                             fontSize = 24.sp

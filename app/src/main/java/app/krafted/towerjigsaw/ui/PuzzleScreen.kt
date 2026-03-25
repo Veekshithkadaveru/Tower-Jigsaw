@@ -80,8 +80,8 @@ fun PuzzleScreen(
         }
     }
 
-    LaunchedEffect(state.isComplete) {
-        if (state.isComplete) {
+    LaunchedEffect(state.isComplete, state.isTimedOut) {
+        if (state.isComplete && !state.isTimedOut) {
             delay(1000)
             onPuzzleComplete(puzzleId, difficultyName, state.finalScore, state.stars, state.timeElapsedMs)
         }
@@ -303,6 +303,63 @@ fun PuzzleScreen(
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        if (state.isComplete && !state.isTimedOut) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFFFFD54F).copy(alpha = 0.08f))
+            )
+        }
+
+        if (state.isTimedOut) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF080810).copy(alpha = 0.85f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "TIME'S UP",
+                        style = TextStyle(
+                            fontFamily = DisplayFont,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFFF44336),
+                            letterSpacing = 4.sp
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "You ran out of time",
+                        color = PsTextSecondary,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(28.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color.White.copy(alpha = 0.08f))
+                            .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(14.dp))
+                            .clickable { onBack() }
+                            .padding(horizontal = 32.dp, vertical = 14.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "GO BACK",
+                            style = TextStyle(
+                                fontFamily = DisplayFont,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = PsTextPrimary,
+                                letterSpacing = 2.sp
+                            )
+                        )
                     }
                 }
             }
