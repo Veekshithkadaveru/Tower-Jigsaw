@@ -312,6 +312,7 @@ fun PuzzleScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .clickable {}
                     .background(Color(0xFFFFD54F).copy(alpha = 0.08f))
             )
         }
@@ -320,6 +321,7 @@ fun PuzzleScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .clickable {}
                     .background(Color(0xFF080810).copy(alpha = 0.85f)),
                 contentAlignment = Alignment.Center
             ) {

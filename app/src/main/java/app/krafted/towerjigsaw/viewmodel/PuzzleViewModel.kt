@@ -127,6 +127,9 @@ class PuzzleViewModel(application: Application) : AndroidViewModel(application) 
 
             withContext(Dispatchers.Main) {
                 _state.update { it.copy(isAutoSolving = false, isComputingSolution = false) }
+                if (_state.value.isTimedMode && !_state.value.isComplete) {
+                    startTimer()
+                }
             }
         }
     }

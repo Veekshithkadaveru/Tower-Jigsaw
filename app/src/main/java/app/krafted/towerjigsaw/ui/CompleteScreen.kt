@@ -32,7 +32,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.krafted.towerjigsaw.viewmodel.CompleteViewModel
 import androidx.compose.ui.graphics.SolidColor
@@ -84,6 +86,7 @@ fun CompleteScreen(
     val difficulty = Difficulty.valueOf(difficultyName)
     val context = LocalContext.current
     val completeViewModel: CompleteViewModel = viewModel()
+    val scope = rememberCoroutineScope()
     var playerName by remember { mutableStateOf("Player") }
 
     val resId = remember(puzzle.imageResName) {
@@ -400,10 +403,12 @@ fun CompleteScreen(
                                 RoundedCornerShape(14.dp)
                             )
                             .clickable {
-                                completeViewModel.saveResult(
-                                    puzzleId, difficultyName, isTimedMode, timeMs, score, stars, playerName
-                                )
-                                onNextPuzzle()
+                                scope.launch {
+                                    completeViewModel.saveResult(
+                                        puzzleId, difficultyName, isTimedMode, timeMs, score, stars, playerName
+                                    )
+                                    onNextPuzzle()
+                                }
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -432,10 +437,12 @@ fun CompleteScreen(
                             RoundedCornerShape(14.dp)
                         )
                         .clickable {
-                            completeViewModel.saveResult(
-                                puzzleId, difficultyName, isTimedMode, timeMs, score, stars, playerName
-                            )
-                            onHome()
+                            scope.launch {
+                                completeViewModel.saveResult(
+                                    puzzleId, difficultyName, isTimedMode, timeMs, score, stars, playerName
+                                )
+                                onHome()
+                            }
                         },
                     contentAlignment = Alignment.Center
                 ) {

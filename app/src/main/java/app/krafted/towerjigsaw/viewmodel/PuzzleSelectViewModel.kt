@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class PuzzleSelectViewModel(application: Application) : AndroidViewModel(application) {
@@ -29,7 +30,7 @@ class PuzzleSelectViewModel(application: Application) : AndroidViewModel(applica
         Difficulty.entries.forEach { difficulty ->
             viewModelScope.launch {
                 dao.getBestResult(puzzleId, difficulty.name).collect { result ->
-                    _bestResults.value = _bestResults.value + (difficulty.name to result)
+                    _bestResults.update { it + (difficulty.name to result) }
                 }
             }
         }

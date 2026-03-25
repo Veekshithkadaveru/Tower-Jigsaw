@@ -19,3 +19,18 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Room
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
+-keep @androidx.room.Dao interface *
+-keepclassmembers @androidx.room.Entity class * { *; }
+
+# Kotlin coroutines
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+
+# Keep app data classes used by Room
+-keep class app.krafted.towerjigsaw.data.db.** { *; }
+-keep class app.krafted.towerjigsaw.game.** { *; }
+-keep class app.krafted.towerjigsaw.viewmodel.PuzzleUiState { *; }
