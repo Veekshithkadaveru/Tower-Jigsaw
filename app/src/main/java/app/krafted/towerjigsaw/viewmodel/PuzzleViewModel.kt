@@ -8,6 +8,8 @@ import app.krafted.towerjigsaw.data.db.PuzzleDao
 import app.krafted.towerjigsaw.data.db.PuzzleResult
 import app.krafted.towerjigsaw.game.Difficulty
 import app.krafted.towerjigsaw.game.PuzzleEngine
+import app.krafted.towerjigsaw.game.PuzzlePiece
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +17,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlin.math.abs
 
 class PuzzleViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -25,34 +29,19 @@ class PuzzleViewModel(application: Application) : AndroidViewModel(application) 
 
     private var startTime: Long = 0L
     private var timerJob: Job? = null
-
-    var boardOffsetX: Float = 0f
-        private set
-    var boardOffsetY: Float = 0f
-        private set
-    var pieceWidth: Float = 0f
-        private set
-    var pieceHeight: Float = 0f
-        private set
+    private var autoSolveJob: Job? = null
 
     fun startPuzzle(puzzleId: Int, difficulty: Difficulty, isTimedMode: Boolean) {
         timerJob?.cancel()
 
-        val trayEndX = pieceWidth * difficulty.cols
-        val boardHeight = pieceHeight * difficulty.rows + boardOffsetY
-        val pieces = PuzzleEngine.generatePieces(
-            difficulty = difficulty,
-            trayStartX = 0f,
-            trayEndX = if (trayEndX > 0f) trayEndX else 300f,
-            trayStartY = if (boardHeight > 0f) boardHeight + 20f else 500f,
-            trayEndY = if (boardHeight > 0f) boardHeight + 200f else 700f
-        )
+        val generationResult = PuzzleEngine.generatePieces(difficulty)
 
         _state.value = PuzzleUiState(
             puzzleId = puzzleId,
             difficulty = difficulty,
-            pieces = pieces,
-            totalPieces = difficulty.totalPieces,
+            pieces = generationResult.pieces,
+            emptyCol = generationResult.emptyCol,
+            emptyRow = generationResult.emptyRow,
             isTimedMode = isTimedMode,
             targetTimeMs = difficulty.targetTimeMs
         )
@@ -64,66 +53,22 @@ class PuzzleViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun setBoardDimensions(offsetX: Float, offsetY: Float, pWidth: Float, pHeight: Float) {
-        boardOffsetX = offsetX
-        boardOffsetY = offsetY
-        pieceWidth = pWidth
-        pieceHeight = pHeight
-
-        val current = _state.value
-        if (current.pieces.isNotEmpty()) {
-            val unplacedExist = current.pieces.any { !it.isPlaced }
-            if (unplacedExist) {
-                val boardHeight = offsetY + pHeight * current.difficulty.rows
-                val trayEndX = offsetX + pWidth * current.difficulty.cols
-                val newPieces = current.pieces.map { piece ->
-                    if (piece.isPlaced) piece
-                    else piece.copy(
-                        currentX = kotlin.random.Random.nextFloat() * (trayEndX - offsetX) + offsetX,
-                        currentY = kotlin.random.Random.nextFloat() * 180f + boardHeight + 20f
-                    )
-                }
-                _state.update { it.copy(pieces = newPieces) }
-            }
-        }
-    }
-
-    fun onPiecePicked(pieceId: Int) {
-        _state.update { it.copy(activePieceId = pieceId) }
-    }
-
-    fun onPieceMoved(pieceId: Int, dx: Float, dy: Float) {
-        _state.update { current ->
-            val newPieces = current.pieces.map { piece ->
-                if (piece.id == pieceId && !piece.isPlaced) {
-                    piece.copy(currentX = piece.currentX + dx, currentY = piece.currentY + dy)
-                } else {
-                    piece
-                }
-            }
-            current.copy(pieces = newPieces)
-        }
-    }
-
-    fun onPieceDropped(pieceId: Int) {
+    fun onPieceTapped(pieceId: Int) {
         val current = _state.value
         val piece = current.pieces.find { it.id == pieceId } ?: return
+        
+        val isAdjacent = (abs(piece.currentCol - current.emptyCol) == 1 && piece.currentRow == current.emptyRow) ||
+                         (abs(piece.currentRow - current.emptyRow) == 1 && piece.currentCol == current.emptyCol)
 
-        val snapResult = PuzzleEngine.checkSnap(
-            piece = piece,
-            pieceWidth = pieceWidth,
-            pieceHeight = pieceHeight,
-            boardOffsetX = boardOffsetX,
-            boardOffsetY = boardOffsetY
-        )
+        if (isAdjacent) {
+            val tempCol = piece.currentCol
+            val tempRow = piece.currentRow
 
-        if (snapResult != null) {
-            val (snapX, snapY) = snapResult
             val newPieces = current.pieces.map {
-                if (it.id == pieceId) it.copy(currentX = snapX, currentY = snapY, isPlaced = true)
+                if (it.id == pieceId) it.copy(currentCol = current.emptyCol, currentRow = current.emptyRow)
                 else it
             }
-            val newPlacedCount = current.placedCount + 1
+
             val isComplete = PuzzleEngine.isPuzzleComplete(newPieces)
 
             if (isComplete) {
@@ -133,12 +78,12 @@ class PuzzleViewModel(application: Application) : AndroidViewModel(application) 
                 val stars = PuzzleEngine.calculateStars(current.isTimedMode, current.difficulty, elapsed)
                 _state.value = current.copy(
                     pieces = newPieces,
-                    placedCount = newPlacedCount,
+                    emptyCol = -1,
+                    emptyRow = -1,
                     isComplete = true,
                     timeElapsedMs = elapsed,
                     finalScore = score,
-                    stars = stars,
-                    activePieceId = null
+                    stars = stars
                 )
                 saveResult(
                     puzzleId = current.puzzleId,
@@ -149,17 +94,89 @@ class PuzzleViewModel(application: Application) : AndroidViewModel(application) 
                     stars = stars
                 )
             } else {
-                _state.update {
-                    it.copy(
-                        pieces = newPieces,
-                        placedCount = newPlacedCount,
-                        activePieceId = null
-                    )
-                }
+                _state.value = current.copy(
+                    pieces = newPieces,
+                    emptyCol = tempCol,
+                    emptyRow = tempRow
+                )
             }
-        } else {
-            _state.update { it.copy(activePieceId = null) }
         }
+    }
+
+    fun onFixRow() {
+        val current = _state.value
+        if (current.isComplete || current.isAutoSolving) return
+
+        val targetRow = PuzzleEngine.getTargetRow(current.pieces, current.difficulty.rows) ?: return
+
+        autoSolveJob?.cancel()
+        timerJob?.cancel()
+
+        _state.update { it.copy(isAutoSolving = true, isComputingSolution = true) }
+
+        autoSolveJob = viewModelScope.launch(Dispatchers.Default) {
+            val rowMoves = try {
+                val fullSolution = PuzzleEngine.findFullSolution(
+                    current.pieces, current.emptyCol, current.emptyRow, current.difficulty
+                )
+                trimToRowComplete(fullSolution, current.pieces, current.emptyCol, current.emptyRow, targetRow)
+            } catch (e: Exception) {
+                emptyList()
+            }
+
+            withContext(Dispatchers.Main) {
+                _state.update { it.copy(isComputingSolution = false) }
+            }
+
+            for (pieceId in rowMoves) {
+                if (!_state.value.isAutoSolving) break
+                withContext(Dispatchers.Main) { onPieceTapped(pieceId) }
+                delay(420)
+            }
+
+            withContext(Dispatchers.Main) {
+                _state.update { it.copy(isAutoSolving = false, isComputingSolution = false) }
+            }
+        }
+    }
+
+    fun onStopFixRow() {
+        autoSolveJob?.cancel()
+        _state.update { it.copy(isAutoSolving = false, isComputingSolution = false) }
+        if (_state.value.isTimedMode && !_state.value.isComplete) startTimer()
+    }
+
+    /**
+     * From the full solution, return only the prefix of moves needed
+     * to get [targetRow] fully into its correct positions.
+     */
+    private fun trimToRowComplete(
+        solution: List<Int>,
+        initialPieces: List<PuzzlePiece>,
+        initialEmptyCol: Int,
+        initialEmptyRow: Int,
+        targetRow: Int
+    ): List<Int> {
+        var simPieces = initialPieces.toMutableList()
+        var simEmptyCol = initialEmptyCol
+        var simEmptyRow = initialEmptyRow
+
+        for ((index, pieceId) in solution.withIndex()) {
+            val piece = simPieces.find { it.id == pieceId } ?: break
+            val oldCol = piece.currentCol
+            val oldRow = piece.currentRow
+            simPieces = simPieces.map {
+                if (it.id == pieceId) it.copy(currentCol = simEmptyCol, currentRow = simEmptyRow) else it
+            }.toMutableList()
+            simEmptyCol = oldCol
+            simEmptyRow = oldRow
+
+            val rowDone = simPieces
+                .filter { it.correctRow == targetRow }
+                .all { it.currentCol == it.correctCol && it.currentRow == it.correctRow }
+            if (rowDone) return solution.subList(0, index + 1)
+        }
+        return solution
     }
 
     private fun saveResult(
@@ -213,5 +230,6 @@ class PuzzleViewModel(application: Application) : AndroidViewModel(application) 
     override fun onCleared() {
         super.onCleared()
         timerJob?.cancel()
+        autoSolveJob?.cancel()
     }
 }

@@ -25,6 +25,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import app.krafted.towerjigsaw.ui.HomeScreen
 import app.krafted.towerjigsaw.ui.LeaderboardScreen
+import app.krafted.towerjigsaw.ui.PuzzleScreen
 import app.krafted.towerjigsaw.ui.PuzzleSelectScreen
 import app.krafted.towerjigsaw.ui.theme.TowerJigsawTheme
 import app.krafted.towerjigsaw.viewmodel.HomeViewModel
@@ -50,7 +51,7 @@ class MainActivity : ComponentActivity() {
 fun TowerJigsawNavHost(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val transitionDuration = 280
-    
+
     val homeViewModel: HomeViewModel = viewModel()
     val isTimedMode by homeViewModel.isTimedMode.collectAsState()
 
@@ -114,15 +115,15 @@ fun TowerJigsawNavHost(modifier: Modifier = Modifier) {
             )
         ) { backStackEntry ->
             val puzzleId = backStackEntry.arguments?.getInt("puzzleId") ?: 1
-            
+
             val puzzleSelectViewModel: PuzzleSelectViewModel = viewModel()
             val completedKeys by puzzleSelectViewModel.completedKeys.collectAsState()
             val bestResults by puzzleSelectViewModel.bestResults.collectAsState()
-            
+
             LaunchedEffect(puzzleId) {
                 puzzleSelectViewModel.loadBestResults(puzzleId)
             }
-            
+
             PuzzleSelectScreen(
                 puzzleId = puzzleId,
                 isTimedMode = isTimedMode,
@@ -146,8 +147,17 @@ fun TowerJigsawNavHost(modifier: Modifier = Modifier) {
             val puzzleId = backStackEntry.arguments?.getInt("puzzleId") ?: 1
             val difficulty = backStackEntry.arguments?.getString("difficulty").orEmpty()
             val isTimedMode = backStackEntry.arguments?.getBoolean("isTimedMode") ?: false
-            PlaceholderScreen(
-                label = "Puzzle (puzzleId=$puzzleId, difficulty=$difficulty, timed=$isTimedMode)"
+
+            PuzzleScreen(
+                puzzleId = puzzleId,
+                difficultyName = difficulty,
+                isTimedMode = isTimedMode,
+                onPuzzleComplete = { id, diffName, score, stars, timeMs ->
+                    navController.navigate("complete/$id/$diffName/$score/$stars/$timeMs") {
+                        popUpTo("puzzle_select/$id") { inclusive = false }
+                    }
+                },
+                onBack = { navController.popBackStack() }
             )
         }
 
@@ -176,7 +186,7 @@ fun TowerJigsawNavHost(modifier: Modifier = Modifier) {
             val selectedPuzzleId by leaderboardViewModel.selectedPuzzleId.collectAsState()
             val selectedDifficulty by leaderboardViewModel.selectedDifficulty.collectAsState()
             val scores by leaderboardViewModel.scores.collectAsState()
-            
+
             LeaderboardScreen(
                 selectedPuzzleId = selectedPuzzleId,
                 selectedDifficulty = selectedDifficulty,

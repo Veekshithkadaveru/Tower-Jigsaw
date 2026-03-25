@@ -7,13 +7,14 @@ data class PuzzleUiState(
     val puzzleId: Int = 0,
     val difficulty: Difficulty = Difficulty.EASY,
     val pieces: List<PuzzlePiece> = emptyList(),
-    val placedCount: Int = 0,
-    val totalPieces: Int = 0,
+    val emptyCol: Int = 0,
+    val emptyRow: Int = 0,
     val isComplete: Boolean = false,
     val isTimedMode: Boolean = false,
     val timeElapsedMs: Long = 0L,
     val targetTimeMs: Long = 0L,
     val finalScore: Int = 0,
     val stars: Int = 0,
-    val activePieceId: Int? = null
+    val isAutoSolving: Boolean = false,
+    val isComputingSolution: Boolean = false
 )
